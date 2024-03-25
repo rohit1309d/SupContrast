@@ -19,6 +19,8 @@ class SupConLoss(nn.Module):
 
 		self.u = torch.zeros(N).reshape(-1, 1)
 		self.v = torch.zeros(N)
+		self.f1_w = torch.zeros(N).reshape(-1, 1)
+		self.f2_w = torch.zeros(N)
 	
 	# def forward(self, features, index, labels=None, mask=None, gamma=0.9):
 	# 	"""Compute loss for model. If both `labels` and `mask` are None,
@@ -186,11 +188,10 @@ class SupConLoss(nn.Module):
 		if self.u[index.cpu()].sum() == 0:
 			gamma = 1
 
-		u = (1 - gamma) * self.u[index.cpu()].cuda() + gamma * exp_logits.sum(1, keepdim=True)
+		u = (1 - gamma) * (self.u[index.cpu()].cuda() - self.f1_w[index.cpu()].cuda()) + gamma * exp_logits.sum(1, keepdim=True)
 		with torch.no_grad():
+			self.f1[index.cpu()] = exp_logits.sum(1, keepdim=True).cpu()
 			self.u[index.cpu()] = u.cpu()
-			
-		# df1 = (exp_logits * logits).sum(1, keepdim=True)
 
 		prob = torch.exp(logits)/u
 
@@ -207,8 +208,9 @@ class SupConLoss(nn.Module):
 
 		# df2 = ((torch.div(prob*logits, self.temperature) - (df1*prob/u))*mask).sum(1) / mask_pos_pairs
 
-		v = (1 - gamma) * self.v[index.cpu()].cuda() + gamma * mean_prob_pos
+		v = (1 - gamma) * (self.v[index.cpu()].cuda() - self.f2_w[index.cpu()].cuda()) + gamma * mean_prob_pos
 		with torch.no_grad():
+			self.f2_w[index.cpu()] = mean_prob_pos
 			self.v[index.cpu()] = v.cpu()
 
 		# loss
