@@ -165,8 +165,7 @@ class SupConLoss(nn.Module):
 			torch.matmul(anchor_feature, contrast_feature.T),
 			self.temperature)
 		
-		logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
-		
+		logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)		
 		logits = anchor_dot_contrast - logits_max.detach()
 
 		# tile mask
@@ -188,9 +187,9 @@ class SupConLoss(nn.Module):
 		if self.u[index.cpu()].sum() == 0:
 			gamma = 1
 
-		u = (1 - gamma) * (self.u[index.cpu()].cuda() - self.f1_w[index.cpu()].cuda()) + gamma * exp_logits.sum(1, keepdim=True)
+		u = (1 - gamma) * (self.u[index.cpu()].cuda() - self.f1_w[index.cpu()].cuda()) + exp_logits.sum(1, keepdim=True)
 		with torch.no_grad():
-			self.f1[index.cpu()] = exp_logits.sum(1, keepdim=True).cpu()
+			self.f1_w[index.cpu()] = exp_logits.sum(1, keepdim=True).cpu()
 			self.u[index.cpu()] = u.cpu()
 
 		prob = torch.exp(logits)/u
@@ -208,13 +207,15 @@ class SupConLoss(nn.Module):
 
 		# df2 = ((torch.div(prob*logits, self.temperature) - (df1*prob/u))*mask).sum(1) / mask_pos_pairs
 
-		v = (1 - gamma) * (self.v[index.cpu()].cuda() - self.f2_w[index.cpu()].cuda()) + gamma * mean_prob_pos
+		v = (1 - gamma) * (self.v[index.cpu()].cuda() - self.f2_w[index.cpu()].cuda()) + mean_prob_pos
 		with torch.no_grad():
-			self.f2_w[index.cpu()] = mean_prob_pos
+			self.f2_w[index.cpu()] = mean_prob_pos.cpu()
 			self.v[index.cpu()] = v.cpu()
-
+		
 		# loss
 		loss = - (self.temperature / self.base_temperature) * torch.log(v)
 		loss = loss.view(anchor_count, batch_size).mean()
 
+		if loss.item() == torch.nan:
+			exit()
 		return loss
