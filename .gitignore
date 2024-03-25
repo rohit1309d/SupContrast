@@ -133,5 +133,7 @@ dmypy.json
 datasets/
 save/
 save1/
+save2/
 confusion_matrix.csv
 pred_truth.csv
+analysis.py

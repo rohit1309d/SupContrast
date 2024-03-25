@@ -190,7 +190,7 @@ class SupConLoss(nn.Module):
 		with torch.no_grad():
 			self.u[index.cpu()] = u.cpu()
 			
-		df1 = (exp_logits * logits).sum(1, keepdim=True)
+		# df1 = (exp_logits * logits).sum(1, keepdim=True)
 
 		prob = torch.exp(logits)/u
 
@@ -205,14 +205,14 @@ class SupConLoss(nn.Module):
 		mask_pos_pairs = torch.where(mask_pos_pairs < 1e-6, 1, mask_pos_pairs)
 		mean_prob_pos = (mask * prob).sum(1) / mask_pos_pairs
 
-		df2 = ((torch.div(prob*logits, self.temperature) - (df1*prob/u))*mask).sum(1) / mask_pos_pairs
+		# df2 = ((torch.div(prob*logits, self.temperature) - (df1*prob/u))*mask).sum(1) / mask_pos_pairs
 
 		v = (1 - gamma) * self.v[index.cpu()].cuda() + gamma * mean_prob_pos
 		with torch.no_grad():
 			self.v[index.cpu()] = v.cpu()
 
 		# loss
-		loss = - (self.temperature / self.base_temperature) * (df2/v)
+		loss = - (self.temperature / self.base_temperature) * torch.log(v)
 		loss = loss.view(anchor_count, batch_size).mean()
 
 		return loss
