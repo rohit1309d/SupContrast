@@ -215,7 +215,5 @@ class SupConLoss(nn.Module):
 		# loss
 		loss = - (self.temperature / self.base_temperature) * torch.log(v)
 		loss = loss.view(anchor_count, batch_size).mean()
-
-		if loss.item() == torch.nan:
-			exit()
+		
 		return loss
